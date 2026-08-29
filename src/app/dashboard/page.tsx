@@ -298,6 +298,8 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const repoPath = searchParams.get("repo");
+  const provider = searchParams.get("provider") || "local";
+  const owner = searchParams.get("owner");
   const tab = searchParams.get("tab") || "overview";
   
   const isDemo = repoPath === "DEMO_MODE";
@@ -336,6 +338,20 @@ function DashboardContent() {
       setBaseBranch("main");
       setCompareBranch("feature/payment");
       setIsLoadingBranches(false);
+    } else if (provider === "github") {
+      const token = sessionStorage.getItem("gh_token") || "";
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      fetch(`/api/repo/remote/branches?provider=github&owner=${owner}&repo=${repoPath}`, { headers })
+        .then(res => res.json())
+        .then(data => {
+          if (data.branches) {
+            setBranches(data.branches);
+            setBaseBranch(data.current || "main");
+            setCompareBranch(data.current !== "main" && data.current !== undefined ? data.current : data.branches[1] || "");
+          }
+        })
+        .finally(() => setIsLoadingBranches(false));
     } else {
       fetch(`/api/repo/branches?path=${encodeURIComponent(repoPath)}`)
         .then(res => res.json())
@@ -369,16 +385,25 @@ function DashboardContent() {
     }
 
     try {
-      const res = await fetch("/api/analyze", {
+      const endpoint = provider === "github" ? "/api/analyze/remote" : "/api/analyze";
+      const payload = provider === "github"
+        ? { provider: "github", owner, repo: repoPath, baseBranch, compareBranch, token: sessionStorage.getItem("gh_token") }
+        : { repoPath, baseBranch, compareBranch };
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoPath, baseBranch, compareBranch })
+        body: JSON.stringify(payload)
       });
+      
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Analysis failed");
+      }
       setResult(data);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Analysis failed.");
+      alert(e.message || "Analysis failed.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -398,7 +423,7 @@ function DashboardContent() {
     <div className="flex flex-col h-full relative z-10">
       <header className="h-14 border-b border-border flex items-center justify-between px-6 bg-background/80 backdrop-blur-sm z-50">
         <div className="flex items-center space-x-2 text-sm font-mono text-muted-foreground truncate max-w-xs">
-          <span>{isDemo ? "DEMO_MODE" : repoPath}</span>
+          <span>{isDemo ? "DEMO_MODE" : provider === "github" ? `github.com/${owner}/${repoPath}` : repoPath}</span>
         </div>
 
         <div className="absolute left-1/2 -translate-x-1/2 flex items-center space-x-4 text-xs font-mono font-medium">

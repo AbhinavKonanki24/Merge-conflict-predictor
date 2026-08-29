@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { FolderGit2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FolderGit2, Globe, Key } from "lucide-react";
 
 function BackgroundGrid() {
   return (
@@ -26,30 +26,61 @@ function BackgroundGrid() {
 
 export default function LandingPage() {
   const router = useRouter();
+  const [provider, setProvider] = useState<"local" | "github">("local");
   const [repoPath, setRepoPath] = useState("");
+  const [githubRepo, setGithubRepo] = useState("");
+  const [githubToken, setGithubToken] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!repoPath) return;
-
     setIsLoading(true);
-    try {
-      const res = await fetch(`/api/repo/status?path=${encodeURIComponent(repoPath)}`);
-      const data = await res.json();
-      
-      if (res.ok && data.valid) {
-        router.push(`/dashboard?repo=${encodeURIComponent(repoPath)}`);
-      } else {
-        setError("Invalid Git repository path.");
-        setIsLoading(false);
+
+    if (provider === "local") {
+      if (!repoPath) { setIsLoading(false); return; }
+      try {
+        const res = await fetch(`/api/repo/status?path=${encodeURIComponent(repoPath)}`);
+        const data = await res.json();
+        
+        if (res.ok && data.valid) {
+          router.push(`/dashboard?repo=${encodeURIComponent(repoPath)}`);
+        } else {
+          setError("Invalid Git repository path.");
+        }
+      } catch {
+        setError("Failed to validate repository.");
       }
-    } catch {
-      setError("Failed to validate repository.");
-      setIsLoading(false);
+    } else {
+      if (!githubRepo) { setIsLoading(false); return; }
+      const parts = githubRepo.split("/");
+      if (parts.length !== 2) {
+        setError("Format must be owner/repo");
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const headers: Record<string, string> = {};
+        if (githubToken) {
+          headers["Authorization"] = `Bearer ${githubToken}`;
+        }
+        const res = await fetch(`https://api.github.com/repos/${parts[0]}/${parts[1]}`, { headers });
+        if (res.ok) {
+          if (githubToken) {
+            sessionStorage.setItem("gh_token", githubToken);
+          } else {
+            sessionStorage.removeItem("gh_token");
+          }
+          router.push(`/dashboard?provider=github&owner=${encodeURIComponent(parts[0])}&repo=${encodeURIComponent(parts[1])}`);
+        } else {
+          setError("GitHub repository not found or inaccessible.");
+        }
+      } catch {
+        setError("Failed to validate GitHub repository.");
+      }
     }
+    setIsLoading(false);
   };
 
   const handleDemo = () => {
@@ -76,21 +107,73 @@ export default function LandingPage() {
         </div>
 
         <div className="w-full space-y-8 flex flex-col items-center">
+          
+          {/* Provider Toggle */}
+          <div className="flex w-full max-w-md border border-border p-1 bg-secondary/20">
+            <button
+              onClick={() => { setProvider("local"); setError(""); }}
+              className={`flex-1 py-2 text-xs font-mono tracking-widest uppercase transition-all ${provider === "local" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Local Repo Path
+            </button>
+            <button
+              onClick={() => { setProvider("github"); setError(""); }}
+              className={`flex-1 py-2 text-xs font-mono tracking-widest uppercase transition-all ${provider === "github" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              GitHub Repo
+            </button>
+          </div>
+
           <form onSubmit={handleAnalyze} className="w-full max-w-md space-y-4">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <FolderGit2 className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <input
-                id="repo"
-                type="text"
-                value={repoPath}
-                onChange={(e) => setRepoPath(e.target.value)}
-                placeholder="Repository path (e.g. C:\Projects\app)"
-                className="block w-full pl-11 pr-4 py-3 bg-secondary/30 border border-border rounded-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all outline-none text-foreground text-sm font-mono placeholder:text-muted-foreground/50"
-                disabled={isLoading}
-              />
-            </div>
+            <AnimatePresence mode="wait">
+              {provider === "local" ? (
+                <motion.div key="local" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-4">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <FolderGit2 className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <input
+                      id="repo"
+                      type="text"
+                      value={repoPath}
+                      onChange={(e) => setRepoPath(e.target.value)}
+                      placeholder="Repository path (e.g. C:\Projects\app)"
+                      className="block w-full pl-11 pr-4 py-3 bg-secondary/30 border border-border rounded-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all outline-none text-foreground text-sm font-mono placeholder:text-muted-foreground/50"
+                      disabled={isLoading}
+                    />
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div key="github" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-4">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Globe className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <input
+                      type="text"
+                      value={githubRepo}
+                      onChange={(e) => setGithubRepo(e.target.value)}
+                      placeholder="owner/repo (e.g. facebook/react)"
+                      className="block w-full pl-11 pr-4 py-3 bg-secondary/30 border border-border rounded-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all outline-none text-foreground text-sm font-mono placeholder:text-muted-foreground/50"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Key className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <input
+                      type="password"
+                      value={githubToken}
+                      onChange={(e) => setGithubToken(e.target.value)}
+                      placeholder="GitHub Token (optional, for private repos)"
+                      className="block w-full pl-11 pr-4 py-3 bg-secondary/30 border border-border rounded-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all outline-none text-foreground text-sm font-mono placeholder:text-muted-foreground/50"
+                      disabled={isLoading}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             <div className="flex justify-between items-center h-5">
               {error ? (
@@ -106,7 +189,7 @@ export default function LandingPage() {
 
             <button
               type="submit"
-              disabled={!repoPath || isLoading}
+              disabled={(provider === "local" ? !repoPath : !githubRepo) || isLoading}
               className="w-full flex items-center justify-center space-x-2 bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 py-3 rounded-none text-sm font-medium transition-all"
             >
               {isLoading ? (

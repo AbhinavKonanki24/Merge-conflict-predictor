@@ -45,7 +45,6 @@ For hackathon presentations, click **Try Demo Repository** on the landing page t
 
 ## Limitations
 
-- **Local Only:** Does not connect to GitHub/GitLab APIs.
 - **No Automatic Merging:** MCP operates in a read-only analysis mode and will never modify your branch automatically.
 - **Binary Files:** Excluded from detailed line-by-line analysis.
 
