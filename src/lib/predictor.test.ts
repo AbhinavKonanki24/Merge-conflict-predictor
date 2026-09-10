@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { classifyRisk, analyzeMergeRisk, DiffSource, parseDiffLines, getOverlap, getNearby, getStructuralRisk } from './predictor';
+import { classifyRisk, analyzeMergeRisk, DiffSource, parseDiffLines, getOverlap, getNearby, getStructuralRisk } from '@fidesa/mcp-engine';
 
 describe('predictor.ts', () => {
   let mockSource: DiffSource;

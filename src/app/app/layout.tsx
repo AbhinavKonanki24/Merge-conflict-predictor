@@ -1,23 +1,25 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { LayoutDashboard, AlertTriangle, FileCode2, GitCompare, History, Settings } from "lucide-react";
+import { LayoutDashboard, AlertTriangle, FileCode2, GitCompare, History, Settings, FolderGit2, ActivitySquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Suspense } from "react";
-
-const navItems = [
-  { icon: LayoutDashboard, label: "Overview", tab: "overview" },
-  { icon: AlertTriangle, label: "Conflicts", tab: "conflicts" },
-  { icon: FileCode2, label: "Files", tab: "files" },
-  { icon: GitCompare, label: "Diff", tab: "diff" },
-  { icon: History, label: "Commits", tab: "commits" },
-];
 
 function SidebarNav() {
   const searchParams = useSearchParams();
   const repo = searchParams.get("repo") || "";
   const currentTab = searchParams.get("tab") || "overview";
+
+  const navItems = [
+    { icon: FolderGit2, label: "Repositories", href: "/app/repositories", isTab: false },
+    { icon: ActivitySquare, label: "Analyses", href: "/app/analyses", isTab: false },
+    { icon: LayoutDashboard, label: "Overview", tab: "overview", isTab: true },
+    { icon: AlertTriangle, label: "Conflicts", tab: "conflicts", isTab: true },
+    { icon: FileCode2, label: "Files", tab: "files", isTab: true },
+    { icon: GitCompare, label: "Diff", tab: "diff", isTab: true },
+    { icon: History, label: "Commits", tab: "commits", isTab: true },
+  ];
 
   return (
     <aside className="w-16 border-r border-border flex flex-col items-center py-6 bg-background z-20">
@@ -27,12 +29,15 @@ function SidebarNav() {
       
       <nav className="flex-1 flex flex-col items-center space-y-4 w-full">
         {navItems.map((item, i) => {
-          const isActive = currentTab === item.tab;
+          if (item.isTab && !repo) return null; // Don't show tabs if no repo selected
+          
+          const isActive = item.isTab ? currentTab === item.tab : false;
+          const href = item.isTab ? `/app?repo=${encodeURIComponent(repo)}&tab=${item.tab}` : item.href!;
           const Icon = item.icon;
           return (
             <Link
               key={i}
-              href={`/dashboard?repo=${encodeURIComponent(repo)}&tab=${item.tab}`}
+              href={href}
               className={cn(
                 "w-10 h-10 flex items-center justify-center transition-colors relative group",
                 isActive ? "bg-foreground text-background rounded-sm" : "text-muted-foreground hover:text-foreground"

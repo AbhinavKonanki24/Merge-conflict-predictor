@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { validateBranchName, getBranches, getMergeBase } from './git';
+import { validateBranchName, getBranches, getMergeBase } from '@fidesa/mcp-engine';
 import fs from 'fs';
 import path from 'path';
 

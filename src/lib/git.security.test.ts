@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { validateBranchName, getMergeBase } from './git';
+import { validateBranchName, getMergeBase } from '@fidesa/mcp-engine';
 import path from 'path';
 
 vi.mock('child_process', () => ({

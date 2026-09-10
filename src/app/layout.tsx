@@ -5,6 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
+import { AuthProvider } from "@/components/providers/AuthProvider";
+
 export const metadata: Metadata = {
   title: "Merge Conflict Predictor",
   description: "Predict conflicts before you merge.",
@@ -18,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans bg-background text-foreground overflow-x-hidden min-h-screen flex flex-col`}>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

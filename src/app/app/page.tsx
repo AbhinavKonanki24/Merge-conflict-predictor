@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, RefreshCcw, Check, Circle, Loader2, ChevronRight, Maximize2, ShieldAlert, GitCommit, FileText, AlertTriangle } from "lucide-react";
-import { DEMO_BRANCHES, DEMO_PREDICTION } from "@/lib/demo-data";
-import { PredictionResult, FileRisk } from "@/lib/predictor";
+import { DEMO_BRANCHES, DEMO_PREDICTION } from "@fidesa/mcp-engine/demo-data";
+import type { PredictionResult, FileRisk } from "@fidesa/mcp-engine/predictor";
 import { cn } from "@/lib/utils";
 import { Suspense } from "react";
 
@@ -305,8 +305,10 @@ function DashboardContent() {
   const isDemo = repoPath === "DEMO_MODE";
 
   const [branches, setBranches] = useState<string[]>([]);
-  const [baseBranch, setBaseBranch] = useState("");
-  const [compareBranch, setCompareBranch] = useState("");
+  const paramBase = searchParams.get("base");
+  const paramCompare = searchParams.get("compare");
+  const [baseBranch, setBaseBranch] = useState(paramBase || "");
+  const [compareBranch, setCompareBranch] = useState(paramCompare || "");
   const [isLoadingBranches, setIsLoadingBranches] = useState(true);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -317,7 +319,7 @@ function DashboardContent() {
 
   useEffect(() => {
     if (!repoPath) {
-      router.push("/");
+      window.location.href = "/app/repositories";
       return;
     }
 
@@ -339,16 +341,13 @@ function DashboardContent() {
       setCompareBranch("feature/payment");
       setIsLoadingBranches(false);
     } else if (provider === "github") {
-      const token = sessionStorage.getItem("gh_token") || "";
-      const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      fetch(`/api/repo/remote/branches?provider=github&owner=${owner}&repo=${repoPath}`, { headers })
+      fetch(`/api/repo/remote/branches?provider=github&owner=${owner}&repo=${repoPath}`)
         .then(res => res.json())
         .then(data => {
           if (data.branches) {
             setBranches(data.branches);
-            setBaseBranch(data.current || "main");
-            setCompareBranch(data.current !== "main" && data.current !== undefined ? data.current : data.branches[1] || "");
+            setBaseBranch(paramBase || data.current || "main");
+            setCompareBranch(paramCompare || (data.current !== "main" && data.current !== undefined ? data.current : data.branches[1] || ""));
           }
         })
         .finally(() => setIsLoadingBranches(false));
@@ -387,7 +386,7 @@ function DashboardContent() {
     try {
       const endpoint = provider === "github" ? "/api/analyze/remote" : "/api/analyze";
       const payload = provider === "github"
-        ? { provider: "github", owner, repo: repoPath, baseBranch, compareBranch, token: sessionStorage.getItem("gh_token") }
+        ? { provider: "github", owner, repo: repoPath, baseBranch, compareBranch }
         : { repoPath, baseBranch, compareBranch };
 
       const res = await fetch(endpoint, {
@@ -456,7 +455,7 @@ function DashboardContent() {
           <button className="text-muted-foreground hover:text-foreground transition-colors">
             <Search className="w-4 h-4 stroke-[1.5]" />
           </button>
-          <button onClick={runAnalysis} disabled={isAnalyzing || baseBranch === compareBranch} className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+          <button onClick={runAnalysis} disabled={isAnalyzing || !baseBranch || !compareBranch || baseBranch === compareBranch} className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
             <RefreshCcw className={cn("w-4 h-4 stroke-[1.5]", isAnalyzing && "animate-spin")} />
           </button>
         </div>
@@ -467,11 +466,18 @@ function DashboardContent() {
           <AnimatePresence mode="wait">
             {!result && !isAnalyzing && (
               <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center space-y-8">
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center text-center">
                   <span className="font-mono text-xs text-muted-foreground tracking-widest uppercase mb-4">Readiness</span>
-                  <button onClick={runAnalysis} className="bg-foreground text-background px-8 py-3 text-sm font-medium hover:bg-foreground/90 transition-colors uppercase tracking-widest">
-                    Analyze Merge Risk
-                  </button>
+                  
+                  {(!baseBranch || !compareBranch) ? (
+                    <div className="text-sm font-mono text-destructive uppercase tracking-widest border border-destructive/30 bg-destructive/10 px-6 py-3">
+                      Not enough branches to compare.
+                    </div>
+                  ) : (
+                    <button onClick={runAnalysis} className="bg-foreground text-background px-8 py-3 text-sm font-medium hover:bg-foreground/90 transition-colors uppercase tracking-widest">
+                      Analyze Merge Risk
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}

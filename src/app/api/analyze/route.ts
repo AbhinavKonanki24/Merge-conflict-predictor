@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { analyzeMergeRisk } from "@/lib/predictor";
-import { isGitRepo } from "@/lib/git";
-import { LocalGitSource } from "@/lib/sources/local";
-import { saveAnalysis } from "@/lib/db";
+import { analyzeMergeRisk } from "@fidesa/mcp-engine";
+import { isGitRepo } from "@fidesa/mcp-engine";
+import { LocalGitSource } from "@fidesa/mcp-engine";
 
 export async function POST(request: Request) {
   try {
@@ -20,15 +19,6 @@ export async function POST(request: Request) {
 
     const source = new LocalGitSource(repoPath);
     const result = await analyzeMergeRisk(source, baseBranch, compareBranch);
-    
-    saveAnalysis({
-      repo: repoPath,
-      provider: "local",
-      baseBranch,
-      compareBranch,
-      overallScore: result.overallScore,
-      overallLevel: result.overallLevel
-    });
 
     return NextResponse.json(result);
   } catch (error: any) {

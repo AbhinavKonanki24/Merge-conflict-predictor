@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isGitRepo } from "@/lib/git";
+import { isGitRepo } from "@fidesa/mcp-engine";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

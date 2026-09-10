@@ -1,0 +1,171 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// NextAuth Next.js User Adapter Models
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  githubId      String?   @unique
+  username      String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  accounts      Account[]
+  sessions      Session[]
+  organizations OrganizationMember[]
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  githubId  String?  @unique
+  login     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members       OrganizationMember[]
+  installations GitHubInstallation[]
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  role           String       @default("MEMBER")
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+model GitHubInstallation {
+  id             String   @id @default(cuid())
+  installationId Int      @unique
+  accountId      Int      
+  accountLogin   String
+  accountType    String
+  organizationId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repositories   Repository[]
+}
+
+model Repository {
+  id             String   @id @default(cuid())
+  githubId       Int      @unique
+  owner          String
+  name           String
+  fullName       String   @unique
+  defaultBranch  String   @default("main")
+  private        Boolean  @default(false)
+  installationId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  installation   GitHubInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
+  pullRequests   PullRequest[]
+  analyses       Analysis[]
+}
+
+model PullRequest {
+  id           String   @id @default(cuid())
+  githubId     Int      @unique
+  number       Int
+  title        String
+  sourceBranch String
+  targetBranch String
+  author       String?
+  repositoryId String
+  status       String   @default("OPEN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  analyses     Analysis[]
+
+  @@unique([repositoryId, number])
+}
+
+model Analysis {
+  id            String   @id @default(cuid())
+  repositoryId  String
+  pullRequestId String?
+  commitSha     String?
+  riskScore     Int?
+  riskLevel     String?
+  conflictCount Int      @default(0)
+  status        String   @default("PENDING")
+  durationMs    Int?
+  errorCode     String?
+  errorMessage  String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  repository    Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  pullRequest   PullRequest? @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+  findings      ConflictFinding[]
+}
+
+model ConflictFinding {
+  id           String   @id @default(cuid())
+  analysisId   String
+  filePath     String
+  conflictType String
+  severity     String
+  lineStart    Int?
+  lineEnd      Int?
+  explanation  String?  @db.Text
+  metadata     String?  @db.Text
+
+  analysis     Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+}
+
+model WebhookEvent {
+  id               String   @id @default(cuid())
+  githubDeliveryId String   @unique
+  eventType        String
+  processedAt      DateTime?
+  status           String   @default("PENDING")
+  payload          String?  @db.Text
+  createdAt        DateTime @default(now())
+}

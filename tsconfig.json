@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@fidesa/mcp-engine/*": ["./packages/mcp-engine/src/*"],
+      "@fidesa/mcp-engine": ["./packages/mcp-engine/src"]
     }
   },
   "include": [

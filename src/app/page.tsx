@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { motion } from "framer-motion";
+import { signIn, useSession } from "next-auth/react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { FolderGit2, Globe, Key } from "lucide-react";
 
 function BackgroundGrid() {
   return (
@@ -25,67 +25,20 @@ function BackgroundGrid() {
 }
 
 export default function LandingPage() {
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const [provider, setProvider] = useState<"local" | "github">("local");
-  const [repoPath, setRepoPath] = useState("");
-  const [githubRepo, setGithubRepo] = useState("");
-  const [githubToken, setGithubToken] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAnalyze = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
-
-    if (provider === "local") {
-      if (!repoPath) { setIsLoading(false); return; }
-      try {
-        const res = await fetch(`/api/repo/status?path=${encodeURIComponent(repoPath)}`);
-        const data = await res.json();
-        
-        if (res.ok && data.valid) {
-          router.push(`/dashboard?repo=${encodeURIComponent(repoPath)}`);
-        } else {
-          setError("Invalid Git repository path.");
-        }
-      } catch {
-        setError("Failed to validate repository.");
-      }
-    } else {
-      if (!githubRepo) { setIsLoading(false); return; }
-      const parts = githubRepo.split("/");
-      if (parts.length !== 2) {
-        setError("Format must be owner/repo");
-        setIsLoading(false);
-        return;
-      }
-      try {
-        const headers: Record<string, string> = {};
-        if (githubToken) {
-          headers["Authorization"] = `Bearer ${githubToken}`;
-        }
-        const res = await fetch(`https://api.github.com/repos/${parts[0]}/${parts[1]}`, { headers });
-        if (res.ok) {
-          if (githubToken) {
-            sessionStorage.setItem("gh_token", githubToken);
-          } else {
-            sessionStorage.removeItem("gh_token");
-          }
-          router.push(`/dashboard?provider=github&owner=${encodeURIComponent(parts[0])}&repo=${encodeURIComponent(parts[1])}`);
-        } else {
-          setError("GitHub repository not found or inaccessible.");
-        }
-      } catch {
-        setError("Failed to validate GitHub repository.");
-      }
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/app");
     }
-    setIsLoading(false);
-  };
+  }, [status, router]);
 
-  const handleDemo = () => {
-    router.push("/dashboard?repo=DEMO_MODE");
-  };
+  if (status === "loading" || status === "authenticated") {
+    return <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-4 h-4 border border-foreground border-t-transparent rounded-full animate-spin" />
+    </div>;
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background relative overflow-hidden font-sans">
@@ -102,118 +55,17 @@ export default function LandingPage() {
             Merge Conflict Predictor
           </h1>
           <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-            Know where your merge will break before you merge.
+            Predict merge conflicts before they break your development workflow.
           </p>
         </div>
 
         <div className="w-full space-y-8 flex flex-col items-center">
-          
-          {/* Provider Toggle */}
-          <div className="flex w-full max-w-md border border-border p-1 bg-secondary/20">
-            <button
-              onClick={() => { setProvider("local"); setError(""); }}
-              className={`flex-1 py-2 text-xs font-mono tracking-widest uppercase transition-all ${provider === "local" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Local Repo Path
-            </button>
-            <button
-              onClick={() => { setProvider("github"); setError(""); }}
-              className={`flex-1 py-2 text-xs font-mono tracking-widest uppercase transition-all ${provider === "github" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              GitHub Repo
-            </button>
-          </div>
-
-          <form onSubmit={handleAnalyze} className="w-full max-w-md space-y-4">
-            <AnimatePresence mode="wait">
-              {provider === "local" ? (
-                <motion.div key="local" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-4">
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <FolderGit2 className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <input
-                      id="repo"
-                      type="text"
-                      value={repoPath}
-                      onChange={(e) => setRepoPath(e.target.value)}
-                      placeholder="Repository path (e.g. C:\Projects\app)"
-                      className="block w-full pl-11 pr-4 py-3 bg-secondary/30 border border-border rounded-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all outline-none text-foreground text-sm font-mono placeholder:text-muted-foreground/50"
-                      disabled={isLoading}
-                    />
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div key="github" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-4">
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <input
-                      type="text"
-                      value={githubRepo}
-                      onChange={(e) => setGithubRepo(e.target.value)}
-                      placeholder="owner/repo (e.g. facebook/react)"
-                      className="block w-full pl-11 pr-4 py-3 bg-secondary/30 border border-border rounded-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all outline-none text-foreground text-sm font-mono placeholder:text-muted-foreground/50"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Key className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <input
-                      type="password"
-                      value={githubToken}
-                      onChange={(e) => setGithubToken(e.target.value)}
-                      placeholder="GitHub Token (optional, for private repos)"
-                      className="block w-full pl-11 pr-4 py-3 bg-secondary/30 border border-border rounded-none focus:ring-1 focus:ring-foreground focus:border-foreground transition-all outline-none text-foreground text-sm font-mono placeholder:text-muted-foreground/50"
-                      disabled={isLoading}
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
-            <div className="flex justify-between items-center h-5">
-              {error ? (
-                <motion.span 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  className="text-xs text-destructive"
-                >
-                  {error}
-                </motion.span>
-              ) : <span />}
-            </div>
-
-            <button
-              type="submit"
-              disabled={(provider === "local" ? !repoPath : !githubRepo) || isLoading}
-              className="w-full flex items-center justify-center space-x-2 bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 py-3 rounded-none text-sm font-medium transition-all"
-            >
-              {isLoading ? (
-                <span className="flex items-center space-x-2">
-                  <div className="w-3 h-3 border-2 border-background border-t-transparent rounded-full animate-spin" />
-                  <span>ANALYZING</span>
-                </span>
-              ) : (
-                <span>ANALYZE REPOSITORY</span>
-              )}
-            </button>
-          </form>
-
-          <div className="flex items-center w-full max-w-md">
-            <div className="flex-1 h-[1px] bg-border" />
-            <span className="px-4 text-xs text-muted-foreground uppercase tracking-widest font-mono">or</span>
-            <div className="flex-1 h-[1px] bg-border" />
-          </div>
-
-          <button 
-            onClick={handleDemo}
-            className="w-full max-w-md flex items-center justify-center space-x-2 bg-transparent text-foreground border border-border hover:border-foreground/50 py-3 rounded-none text-sm font-medium transition-all"
+          <button
+            onClick={() => signIn("github", { callbackUrl: "/app" })}
+            className="w-full max-w-md flex items-center justify-center space-x-3 bg-foreground text-background hover:bg-foreground/90 py-4 rounded-none text-sm font-medium transition-all"
           >
-            <span>TRY DEMO</span>
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+            <span className="uppercase tracking-widest font-mono">Login with GitHub</span>
           </button>
         </div>
       </motion.div>

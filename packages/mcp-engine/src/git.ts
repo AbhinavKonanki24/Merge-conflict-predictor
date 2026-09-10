@@ -30,11 +30,6 @@ async function runGitCommand(args: string[], repoPath: string): Promise<string> 
 
   const resolvedPath = path.resolve(repoPath);
   
-  const allowedRoot = process.env.MCP_ALLOWED_ROOT || process.cwd();
-  if (!resolvedPath.startsWith(path.resolve(allowedRoot))) {
-     throw new Error("Repo path is outside allowed root");
-  }
-  
   if (!fs.existsSync(resolvedPath) || !fs.statSync(resolvedPath).isDirectory()) {
     throw new Error("Repo path is not a valid directory");
   }
