@@ -27,4 +27,5 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+  secret: process.env.NEXTAUTH_SECRET || "fallback_secret_for_vercel_do_not_use_in_real_prod_8f3a",
 };
