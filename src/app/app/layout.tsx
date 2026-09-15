@@ -5,6 +5,9 @@ import { LayoutDashboard, AlertTriangle, FileCode2, GitCompare, History, Setting
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Suspense } from "react";
+import { motion } from "framer-motion";
+
+import Image from "next/image";
 
 function SidebarNav() {
   const searchParams = useSearchParams();
@@ -22,9 +25,9 @@ function SidebarNav() {
   ];
 
   return (
-    <aside className="w-16 border-r border-border flex flex-col items-center py-6 bg-background z-20">
-      <div className="w-8 h-8 bg-foreground text-background flex items-center justify-center font-mono font-bold text-lg mb-8">
-        M
+    <aside className="w-16 border-r border-white/[0.05] flex flex-col items-center py-6 bg-background/50 backdrop-blur-xl z-20 shadow-2xl shadow-black/50">
+      <div className="w-10 h-10 mb-8 rounded-xl shadow-lg shadow-white/10 overflow-hidden bg-white flex items-center justify-center">
+        <Image src="/logo.png" alt="MCP Logo" width={40} height={40} className="object-cover" />
       </div>
       
       <nav className="flex-1 flex flex-col items-center space-y-4 w-full">
@@ -32,21 +35,27 @@ function SidebarNav() {
           if (item.isTab && !repo) return null; // Don't show tabs if no repo selected
           
           const isActive = item.isTab ? currentTab === item.tab : false;
-          const href = item.isTab ? `/app?repo=${encodeURIComponent(repo)}&tab=${item.tab}` : item.href!;
+          const href = item.isTab ? `/app?provider=github&owner=${searchParams.get("owner")}&repo=${encodeURIComponent(repo)}&tab=${item.tab}` : item.href!;
           const Icon = item.icon;
           return (
             <Link
               key={i}
               href={href}
-              className={cn(
-                "w-10 h-10 flex items-center justify-center transition-colors relative group",
-                isActive ? "bg-foreground text-background rounded-sm" : "text-muted-foreground hover:text-foreground"
-              )}
+              className="relative group w-full flex justify-center"
             >
-              <Icon className="w-5 h-5 stroke-[1.5]" />
+              <motion.div
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.95 }}
+                className={cn(
+                  "w-10 h-10 flex items-center justify-center rounded-xl transition-colors relative z-10",
+                  isActive ? "bg-accent/20 text-accent border border-accent/30 shadow-[0_0_15px_rgba(139,92,246,0.3)]" : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
+                )}
+              >
+                <Icon className="w-5 h-5 stroke-[1.5]" />
+              </motion.div>
               
               {/* Tooltip */}
-              <div className="absolute left-14 bg-foreground text-background text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 font-mono">
+              <div className="absolute left-14 top-1/2 -translate-y-1/2 bg-card border border-white/10 text-foreground text-xs px-3 py-1.5 rounded-md shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 translate-x-2 group-hover:translate-x-0 z-50 font-mono tracking-wider">
                 {item.label}
               </div>
             </Link>
@@ -55,9 +64,15 @@ function SidebarNav() {
       </nav>
 
       <div className="mt-auto flex flex-col items-center space-y-4 w-full">
-        <button className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors group relative">
-          <Settings className="w-5 h-5 stroke-[1.5]" />
-          <div className="absolute left-14 bg-foreground text-background text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 font-mono">
+        <button className="relative group w-full flex justify-center">
+          <motion.div
+            whileHover={{ scale: 1.15, rotate: 90 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition-colors"
+          >
+            <Settings className="w-5 h-5 stroke-[1.5]" />
+          </motion.div>
+          <div className="absolute left-14 top-1/2 -translate-y-1/2 bg-card border border-white/10 text-foreground text-xs px-3 py-1.5 rounded-md shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 translate-x-2 group-hover:translate-x-0 z-50 font-mono tracking-wider">
             Settings
           </div>
         </button>
@@ -68,15 +83,20 @@ function SidebarNav() {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans">
-      <Suspense fallback={<aside className="w-16 border-r border-border bg-background z-20" />}>
+    <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans relative">
+      <Suspense fallback={<aside className="w-16 border-r border-white/[0.05] bg-background/50 z-20" />}>
         <SidebarNav />
       </Suspense>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        {/* Glowing Radial Gradient */}
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-accent/5 blur-[120px] pointer-events-none z-0" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/5 blur-[100px] pointer-events-none z-0" />
+        
+        {/* Grid Overlay */}
         <div 
-          className="absolute inset-0 opacity-[0.015] pointer-events-none z-0" 
+          className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" 
           style={{
             backgroundImage: `
               linear-gradient(to right, #ffffff 1px, transparent 1px),

@@ -37,18 +37,28 @@ function OverviewTab({ result, selectedFile, setSelectedFile, baseBranch, compar
   return (
     <>
       {/* Hero Risk Section */}
-      <div className="flex flex-col items-center justify-center pt-8">
-        <div className="text-[96px] leading-none font-mono tracking-tighter text-foreground mb-4">
+      <div className="flex flex-col items-center justify-center pt-12 pb-8 relative">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-high/20 blur-[100px] rounded-full pointer-events-none" />
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }} 
+          animate={{ scale: 1, opacity: 1 }} 
+          transition={{ type: "spring", bounce: 0.5 }}
+          className="text-[120px] leading-none font-mono tracking-tighter text-foreground mb-4 text-glow relative z-10"
+        >
           {result.overallScore}
-        </div>
-        <div className="flex items-center space-x-3 mb-6">
+        </motion.div>
+        <div className="flex items-center space-x-4 mb-8 relative z-10">
           <span className="font-mono text-xs tracking-widest uppercase text-muted-foreground">MERGE RISK</span>
-          <span className={cn("font-mono text-xs tracking-widest uppercase px-2 py-0.5 border", getRiskColorText(result.overallLevel), `border-${result.overallLevel.toLowerCase()}/30`)}>
+          <span className={cn(
+            "font-mono text-xs tracking-widest uppercase px-3 py-1 rounded-full border shadow-[0_0_15px_currentColor]", 
+            getRiskColorText(result.overallLevel), 
+            `border-${result.overallLevel.toLowerCase()}/50 bg-${result.overallLevel.toLowerCase()}/10`
+          )}>
             {result.overallLevel}
           </span>
         </div>
-        <p className="text-foreground/80 font-sans text-lg max-w-xl text-center">
-          {result.files.filter((f: any) => f.level === "High" || f.level === "Critical").length} high-risk conflict zones detected across {result.files.length} changed files.
+        <p className="text-muted-foreground font-sans text-lg max-w-xl text-center relative z-10">
+          <span className="text-foreground font-medium">{result.files.filter((f: any) => f.level === "High" || f.level === "Critical").length}</span> high-risk conflict zones detected across <span className="text-foreground font-medium">{result.files.length}</span> changed files.
         </p>
       </div>
 
@@ -56,34 +66,43 @@ function OverviewTab({ result, selectedFile, setSelectedFile, baseBranch, compar
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start flex-1 min-h-[500px]">
         {/* Left: Hotspots List */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <h3 className="font-mono text-xs tracking-widest uppercase text-muted-foreground">Hotspots</h3>
-            <span className="font-mono text-xs text-muted-foreground">{result.files.length}</span>
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <h3 className="font-mono text-xs tracking-widest uppercase text-muted-foreground flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> Hotspots
+            </h3>
+            <span className="font-mono text-xs bg-white/10 text-foreground px-2 py-0.5 rounded-full">{result.files.length}</span>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {result.files.map((file: any, idx: number) => {
               const isSelected = selectedFile?.file === file.file;
               return (
-                <div 
+                <motion.div 
                   key={idx} 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setSelectedFile(file)}
                   className={cn(
-                    "group cursor-pointer p-3 border transition-colors",
-                    isSelected ? "border-foreground bg-secondary/20" : "border-transparent hover:border-border"
+                    "group cursor-pointer p-4 rounded-xl transition-all relative overflow-hidden",
+                    isSelected ? "bg-white/[0.08] shadow-lg border border-white/20" : "bg-white/[0.02] border border-white/5 hover:bg-white/[0.04]"
                   )}
                 >
-                  <div className="flex justify-between items-baseline mb-2">
-                    <span className="font-mono text-sm truncate pr-4 text-foreground/90">{file.file.split("/").pop()}</span>
-                    <span className={cn("font-mono text-xs", getRiskColorText(file.level))}>{file.score}</span>
+                  <div className="flex justify-between items-center mb-3 relative z-10">
+                    <span className="font-mono text-sm truncate pr-4 text-foreground font-medium">{file.file.split("/").pop()}</span>
+                    <span className={cn("font-mono text-sm font-bold text-glow", getRiskColorText(file.level))}>{file.score}</span>
                   </div>
-                  <div className="w-full h-[2px] bg-border relative">
-                    <div 
-                      className={cn("absolute top-0 left-0 h-full", getRiskColorBg(file.level))} 
-                      style={{ width: `${file.score}%` }} 
+                  <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden relative z-10">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${file.score}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className={cn("absolute top-0 left-0 h-full rounded-full shadow-[0_0_10px_currentColor]", getRiskColorBg(file.level))} 
                     />
                   </div>
-                </div>
+                  {isSelected && (
+                    <div className={cn("absolute inset-0 opacity-10 pointer-events-none", getRiskColorBg(file.level))} />
+                  )}
+                </motion.div>
               );
             })}
           </div>
@@ -420,43 +439,44 @@ function DashboardContent() {
 
   return (
     <div className="flex flex-col h-full relative z-10">
-      <header className="h-14 border-b border-border flex items-center justify-between px-6 bg-background/80 backdrop-blur-sm z-50">
-        <div className="flex items-center space-x-2 text-sm font-mono text-muted-foreground truncate max-w-xs">
-          <span>{isDemo ? "DEMO_MODE" : provider === "github" ? `github.com/${owner}/${repoPath}` : repoPath}</span>
+      <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 glass-panel z-50 gap-4">
+        <div className="flex items-center space-x-2 text-sm font-mono text-muted-foreground truncate flex-shrink-0 min-w-0 max-w-[200px] md:max-w-xs">
+          <FolderGit2 className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="truncate">{isDemo ? "DEMO_MODE" : provider === "github" ? `github.com/${owner}/${repoPath}` : repoPath}</span>
         </div>
 
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center space-x-4 text-xs font-mono font-medium">
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Base</span>
-            <select 
-              value={baseBranch} 
-              onChange={e => { setBaseBranch(e.target.value); setResult(null); }}
-              className="bg-transparent text-foreground focus:outline-none cursor-pointer appearance-none text-right hover:text-muted-foreground transition-colors"
-            >
-              {branches.map(b => <option key={b} value={b} className="bg-background text-foreground">{b}</option>)}
-            </select>
-          </div>
-          
-          <div className="h-4 w-[1px] bg-border rotate-12" />
-          
-          <div className="flex flex-col items-start">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Compare</span>
-            <select 
-              value={compareBranch} 
-              onChange={e => { setCompareBranch(e.target.value); setResult(null); }}
-              className="bg-transparent text-foreground focus:outline-none cursor-pointer appearance-none hover:text-muted-foreground transition-colors"
-            >
-              {branches.map(b => <option key={b} value={b} className="bg-background text-foreground">{b}</option>)}
-            </select>
+        <div className="flex-1 flex justify-center min-w-0">
+          <div className="flex items-center space-x-2 bg-black/40 p-1.5 rounded-full border border-white/5 shadow-inner overflow-x-auto hide-scrollbar max-w-full">
+            <div className="flex items-center bg-white/5 rounded-full px-3 py-1 flex-shrink-0">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest mr-2 hidden sm:inline">Base</span>
+              <select 
+                value={baseBranch} 
+                onChange={e => { setBaseBranch(e.target.value); setResult(null); }}
+                className="bg-transparent text-foreground font-mono text-xs focus:outline-none cursor-pointer appearance-none hover:text-accent transition-colors max-w-[100px] sm:max-w-[150px] truncate"
+              >
+                {branches.map(b => <option key={b} value={b} className="bg-background text-foreground">{b}</option>)}
+              </select>
+            </div>
+            
+            <GitCompare className="w-4 h-4 text-muted-foreground mx-1 flex-shrink-0" />
+            
+            <div className="flex items-center bg-white/5 rounded-full px-3 py-1 flex-shrink-0">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest mr-2 hidden sm:inline">Compare</span>
+              <select 
+                value={compareBranch} 
+                onChange={e => { setCompareBranch(e.target.value); setResult(null); }}
+                className="bg-transparent text-foreground font-mono text-xs focus:outline-none cursor-pointer appearance-none hover:text-accent transition-colors max-w-[100px] sm:max-w-[150px] truncate"
+              >
+                {branches.map(b => <option key={b} value={b} className="bg-background text-foreground">{b}</option>)}
+              </select>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <button className="text-muted-foreground hover:text-foreground transition-colors">
-            <Search className="w-4 h-4 stroke-[1.5]" />
-          </button>
-          <button onClick={runAnalysis} disabled={isAnalyzing || !baseBranch || !compareBranch || baseBranch === compareBranch} className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
-            <RefreshCcw className={cn("w-4 h-4 stroke-[1.5]", isAnalyzing && "animate-spin")} />
+        <div className="flex items-center flex-shrink-0">
+          <button onClick={runAnalysis} disabled={isAnalyzing || !baseBranch || !compareBranch || baseBranch === compareBranch} className="bg-accent/20 text-accent border border-accent/30 hover:bg-accent hover:text-white px-4 py-2 rounded-full text-xs font-mono uppercase tracking-widest transition-all disabled:opacity-50 flex items-center shadow-[0_0_15px_rgba(139,92,246,0.3)]">
+            <RefreshCcw className={cn("w-3 h-3 mr-2", isAnalyzing && "animate-spin")} />
+            {isAnalyzing ? "Analyzing" : "Analyze"}
           </button>
         </div>
       </header>
@@ -467,16 +487,27 @@ function DashboardContent() {
             {!result && !isAnalyzing && (
               <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center space-y-8">
                 <div className="flex flex-col items-center text-center">
-                  <span className="font-mono text-xs text-muted-foreground tracking-widest uppercase mb-4">Readiness</span>
+                  <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 shadow-2xl">
+                    <GitCompare className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h2 className="font-mono text-2xl text-foreground mb-2">Ready for Analysis</h2>
+                  <p className="text-sm text-muted-foreground max-w-md mb-8">
+                    Select a base and compare branch from the top menu to predict merge conflicts.
+                  </p>
                   
                   {(!baseBranch || !compareBranch) ? (
-                    <div className="text-sm font-mono text-destructive uppercase tracking-widest border border-destructive/30 bg-destructive/10 px-6 py-3">
-                      Not enough branches to compare.
+                    <div className="text-sm font-mono text-destructive uppercase tracking-widest border border-destructive/30 bg-destructive/10 px-6 py-4 rounded-xl flex items-center shadow-[0_0_20px_rgba(225,29,72,0.2)]">
+                      <AlertTriangle className="w-4 h-4 mr-2" /> Not enough branches to compare
                     </div>
                   ) : (
-                    <button onClick={runAnalysis} className="bg-foreground text-background px-8 py-3 text-sm font-medium hover:bg-foreground/90 transition-colors uppercase tracking-widest">
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={runAnalysis} 
+                      className="bg-foreground text-background px-8 py-3 rounded-full text-sm font-bold transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.5)] uppercase tracking-widest"
+                    >
                       Analyze Merge Risk
-                    </button>
+                    </motion.button>
                   )}
                 </div>
               </motion.div>
