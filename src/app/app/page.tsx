@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, RefreshCcw, Check, Circle, Loader2, ChevronRight, Maximize2, ShieldAlert, GitCommit, FileText, AlertTriangle } from "lucide-react";
+import { Search, RefreshCcw, Check, Circle, Loader2, ChevronRight, Maximize2, ShieldAlert, GitCommit, FileText, AlertTriangle, FolderGit2, GitCompare } from "lucide-react";
 import { DEMO_BRANCHES, DEMO_PREDICTION } from "@fidesa/mcp-engine/demo-data";
 import type { PredictionResult, FileRisk } from "@fidesa/mcp-engine/predictor";
 import { cn } from "@/lib/utils";
