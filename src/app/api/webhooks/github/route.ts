@@ -61,8 +61,14 @@ async function processPullRequest(payload: any, deliveryId: string) {
   }
 
   try {
-    const appService = new GitHubRepositoryService(undefined, installationId);
-    const token = await appService.getInstallationToken(installationId);
+    // For OAuth apps, we need a way to map this webhook back to a specific user's access_token.
+    // Since this MVP currently doesn't store user<->repo mappings, we cannot authenticate the webhook.
+    // In a production app, you would look up the user who enabled this repo and use their token.
+    console.log(`Webhook received for ${repo.owner.login}/${repo.name}, but OAuth token mapping is not implemented.`);
+    return;
+    
+    // The rest of this function would execute if we had a valid user token:
+    /*
     const githubService = new GitHubRepositoryService(token);
     
     const check = await githubService.createCheckRun(
@@ -74,6 +80,7 @@ async function processPullRequest(payload: any, deliveryId: string) {
 
     const mcpSource = new GitHubSource(repo.owner.login, repo.name, token);
     const result = await analyzeMergeRisk(mcpSource, pr.base.ref, pr.head.ref);
+    */
 
     const isRisky = result.overallLevel === "Critical" || result.overallLevel === "High";
     const conclusion = isRisky ? "failure" : "success";

@@ -1,21 +1,10 @@
 import { Octokit } from "octokit";
-import { createAppAuth } from "@octokit/auth-app";
 
 export class GitHubRepositoryService {
   private octokit: Octokit;
 
-  constructor(token?: string, installationId?: number) {
-    if (installationId) {
-      // Authenticate as a GitHub App Installation
-      this.octokit = new Octokit({
-        authStrategy: createAppAuth,
-        auth: {
-          appId: process.env.GITHUB_APP_ID!,
-          privateKey: process.env.GITHUB_PRIVATE_KEY!.replace(/\\n/g, "\n"),
-          installationId: installationId,
-        },
-      });
-    } else if (token) {
+  constructor(token?: string) {
+    if (token) {
       // Authenticate as a User via OAuth Token
       this.octokit = new Octokit({
         auth: token,
@@ -105,12 +94,5 @@ export class GitHubRepositoryService {
       output,
     });
     return data;
-  }
-
-  async getInstallationToken(installationId: number) {
-    const { data } = await this.octokit.rest.apps.createInstallationAccessToken({
-      installation_id: installationId,
-    });
-    return data.token;
   }
 }
