@@ -46,7 +46,7 @@ export default async function RepositoriesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {repositories.map((repo) => (
-          <Link href={`/app?repo=${encodeURIComponent(repo.full_name)}&tab=overview`} key={repo.id}>
+          <Link href={`/app?provider=github&owner=${encodeURIComponent(repo.owner.login)}&repo=${encodeURIComponent(repo.name)}&tab=overview`} key={repo.id}>
             <div className="border border-border p-5 rounded-sm hover:border-foreground transition-all group bg-background relative overflow-hidden h-full flex flex-col">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-mono text-sm font-bold truncate group-hover:text-primary transition-colors">
