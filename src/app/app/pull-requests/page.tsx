@@ -19,14 +19,9 @@ export default async function PullRequestsPage({ searchParams }: { searchParams:
     redirect("/app/repositories");
   }
 
-  const account = await db.account.findFirst({
-    where: {
-      userId: (session.user as any).id,
-      provider: "github",
-    },
-  });
+  const accessToken = (session as any).accessToken;
 
-  if (!account || !account.access_token) {
+  if (!accessToken) {
     return <div>No GitHub token found. Please sign in again.</div>;
   }
 
@@ -36,7 +31,7 @@ export default async function PullRequestsPage({ searchParams }: { searchParams:
     return <div>Invalid repository format. Must be owner/name.</div>;
   }
 
-  const githubService = new GitHubRepositoryService(account.access_token);
+  const githubService = new GitHubRepositoryService(accessToken);
   let pullRequests: any[] = [];
   
   try {

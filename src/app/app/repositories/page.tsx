@@ -14,19 +14,13 @@ export default async function RepositoriesPage() {
     redirect("/");
   }
 
-  // Fetch the user's GitHub account token from Prisma
-  const account = await db.account.findFirst({
-    where: {
-      userId: (session.user as any).id,
-      provider: "github",
-    },
-  });
+  const accessToken = (session as any).accessToken;
 
-  if (!account || !account.access_token) {
+  if (!accessToken) {
     return <div>No GitHub token found. Please sign in again.</div>;
   }
 
-  const githubService = new GitHubRepositoryService(account.access_token);
+  const githubService = new GitHubRepositoryService(accessToken);
   let repositories: any[] = [];
   try {
     repositories = await githubService.listUserRepositories();

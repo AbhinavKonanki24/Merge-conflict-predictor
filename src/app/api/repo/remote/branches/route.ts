@@ -19,20 +19,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const account = await db.account.findFirst({
-    where: {
-      userId: (session.user as any).id,
-      provider: "github",
-    },
-  });
+  const accessToken = (session as any).accessToken;
 
-  if (!account || !account.access_token) {
+  if (!accessToken) {
     return NextResponse.json({ error: "No GitHub token found" }, { status: 401 });
   }
 
   if (provider === "github") {
     try {
-      const githubService = new GitHubRepositoryService(account.access_token);
+      const githubService = new GitHubRepositoryService(accessToken);
       
       const [branches, repoData] = await Promise.all([
         githubService.getBranches(owner, repo),

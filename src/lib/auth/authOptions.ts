@@ -4,7 +4,6 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/database/db";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(db) as any,
   session: { strategy: "jwt" },
   providers: [
     GithubProvider({
@@ -22,17 +21,19 @@ export const authOptions: NextAuthOptions = {
     signIn: "/",
   },
   callbacks: {
-    async jwt({ token, user }) {
-      // On initial sign in, user object is provided. Map its ID to the token.
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+      }
+      if (account) {
+        token.accessToken = account.access_token;
       }
       return token;
     },
     async session({ session, token }) {
-      // Map the ID from the token into the session object so API routes can use it
       if (session?.user && token?.id) {
         (session.user as any).id = token.id;
+        (session as any).accessToken = token.accessToken;
       }
       return session;
     },

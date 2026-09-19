@@ -12,14 +12,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const account = await db.account.findFirst({
-      where: {
-        userId: (session.user as any).id,
-        provider: "github",
-      },
-    });
+    const accessToken = (session as any).accessToken;
 
-    if (!account || !account.access_token) {
+    if (!accessToken) {
       return NextResponse.json({ error: "No GitHub token found" }, { status: 401 });
     }
 
@@ -31,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     if (provider === "github") {
-      const source = new GitHubSource(owner, repo, account.access_token);
+      const source = new GitHubSource(owner, repo, accessToken);
       const result = await analyzeMergeRisk(source, baseBranch, compareBranch);
       
       // Save analysis to database using Prisma
